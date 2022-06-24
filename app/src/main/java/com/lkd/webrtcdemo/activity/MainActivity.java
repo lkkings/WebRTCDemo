@@ -6,13 +6,19 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.navigation.NavigationBarView;
 import com.lkd.webrtcdemo.R;
+import com.lkd.webrtcdemo.ui.PeerAdapter;
 import com.lkd.webrtcdemo.utils.PermissionUtil;
+import com.lkd.webrtcdemo.webrtcmodule.Peer;
 import com.lkd.webrtcdemo.webrtcmodule.PeerConnectionParameters;
 import com.lkd.webrtcdemo.webrtcmodule.RtcListener;
 import com.lkd.webrtcdemo.webrtcmodule.WebRtcClient;
@@ -25,8 +31,9 @@ import org.webrtc.VideoTrack;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 
-public class MainActivity extends Activity implements RtcListener,View.OnClickListener{
+public class MainActivity extends Activity implements RtcListener,View.OnClickListener, AdapterView.OnItemClickListener {
     //控件
     private EditText roomName;
     private Button openCamera;
@@ -40,6 +47,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
     private SurfaceViewRenderer localSurfaceViewRenderer;
     private LinearLayout remoteVideoLl;
     private HashMap<String,View> remoteViews;
+    private ListView peerListView;
     /**
      * 提供EGL的渲染上下文及EGL的版本兼容
      */
@@ -73,6 +81,10 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
      */
     private long stopTime = -1;
 
+    /**
+     * Peer列表适配器
+     */
+    private PeerAdapter peerAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +106,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
         stopRecord.setOnClickListener(this);
         saveLocal = findViewById(R.id.saveLocal);
         saveLocal.setOnClickListener(this);
+        saveLocal.setEnabled(false);
         saveCould = findViewById(R.id.saveCould);
         saveCould.setOnClickListener(this);
         localSurfaceViewRenderer = findViewById(R.id.localVideo);
@@ -101,6 +114,10 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
         remoteViews = new HashMap<>();
         //创建WebRtcClient
         createWebRtcClient();
+        peerListView = findViewById(R.id.list_view);
+        peerAdapter = new PeerAdapter(MainActivity.this,R.layout.peer_item,webRtcClient.getPeerList());
+        peerListView.setAdapter(peerAdapter);
+        peerListView.setOnItemClickListener(this);
     }
 
     @Override
@@ -205,15 +222,14 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                 webRtcClient.stopRecord();
                 stopTime = System.currentTimeMillis();
                 isRecord = false;
-                startRecord.setEnabled(true);
                 stopRecord.setEnabled(false);
+                saveLocal.setEnabled(true);
                 Toast.makeText(this,"停止录制屏幕",Toast.LENGTH_SHORT).show();
                 break;
             case R.id.saveLocal:
-                if (!isRecord) {
-                    Toast.makeText(this, "请先开启录制", Toast.LENGTH_SHORT).show();
-                    break;
-                }
+                startRecord.setEnabled(true);
+                stopRecord.setEnabled(true);
+                saveLocal.setEnabled(false);
                 if (stopTime - startTime < 1000){
                     Toast.makeText(this, "录制时间太短", Toast.LENGTH_SHORT).show();
                     break;
@@ -299,6 +315,13 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
         remoteVideoLl.removeAllViews();
     }
 
+    /**
+     * 通知UI刷新列表
+     */
+    public void updateList(){
+        peerAdapter.notifyDataSetChanged();
+    }
+
     // RtcListener 数据回调
     @Override
     public void onAddRemoteStream(String peerId,VideoTrack videoTrack) {
@@ -345,5 +368,16 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                 }
             }
         });
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+        if (view instanceof LinearLayout) {
+            LinearLayout layout = (LinearLayout) view;
+            View view1 = layout.getChildAt(1);
+            TextView textView = (TextView) view1;
+            Toast.makeText(MainActivity.this, textView.getText(), Toast.LENGTH_SHORT).show();
+            webRtcClient.setRemotePeerId(textView.getText().toString());
+        }
     }
 }

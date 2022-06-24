@@ -1,6 +1,8 @@
 package com.lkd.webrtcdemo.webrtcmodule;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import com.lkd.webrtcdemo.activity.MainActivity;
@@ -43,8 +45,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -71,6 +75,10 @@ public class WebRtcClient {
      * Peer集合，socketID为键，Peer为值
      */
     private HashMap<String, Peer> peers = new HashMap<>();
+    /**
+     * Peer列表
+     */
+    private List<Peer> peerList = new ArrayList<>();
     /**
      * IceServer集合 用于构建PeerConnection
      */
@@ -144,6 +152,11 @@ public class WebRtcClient {
      */
     private String filePath;
 
+    /**
+     *对方PeerId
+     */
+    private String remotePeerId;
+
     public WebRtcClient(Context appContext,
                         EglBase eglBase,
                         PeerConnectionParameters peerConnectionParameters,
@@ -169,12 +182,35 @@ public class WebRtcClient {
         return rtcListener;
     }
 
+    public void setRemotePeerId(String remotePeerId) {
+        this.remotePeerId = remotePeerId;
+    }
+
     public String getFilePath() {
         return filePath;
     }
 
     public String getSocketId() {
         return socketId;
+    }
+
+    private Handler handler = new Handler()
+    {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what)
+            {
+                case 1:
+                    ((MainActivity)rtcListener).updateList();
+                default:
+                    break;
+            }
+        }
+    };
+
+    public List<Peer> getPeerList() {
+        return peerList;
     }
 
     public String getRoomId() {
@@ -316,7 +352,6 @@ public class WebRtcClient {
             e.printStackTrace();
         }
     }
-
     /**
      * 退出room
      */
@@ -357,6 +392,10 @@ public class WebRtcClient {
             pc.getPc().addTrack(localAudioTrack);
             //保存peer连接
             peers.put(socketId,pc);
+            peerList.add(pc);
+            Message message = Message.obtain();
+            message.what = 1;
+            handler.sendMessage(message);
         }
         return pc;
     }
@@ -415,7 +454,14 @@ public class WebRtcClient {
     public void startRecord() throws IOException {
         filePath = appContext.getExternalFilesDir(null).getAbsolutePath() + File.separator + System.currentTimeMillis() + ".mp4";
         videoFileRenderer = new VideoFileRenderer(filePath, eglBase.getEglBaseContext(), true);
-        localVideoTrack.addSink(videoFileRenderer);
+        Peer pc = peers.get(remotePeerId);
+        if (pc == null){
+            localVideoTrack.addSink(videoFileRenderer);
+        }
+        else {
+            pc.getVideoTrack().addSink(videoFileRenderer);
+        }
+
     }
     /**
      * 停止录制视频
@@ -599,6 +645,10 @@ public class WebRtcClient {
                     getOrCreateRtcConnect(fromId).getPc().close();
                     //删除peer对象
                     peers.remove(fromId);
+                    peerList.remove(pc);
+                    Message message = Message.obtain();
+                    message.what = 1;
+                    handler.sendMessage(message);
                     //通知UI界面移除video
                     rtcListener.onRemoveRemoteStream(fromId);
                 }

@@ -339,8 +339,9 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                 remoteView.setEnableHardwareScaler(false);
                 remoteView.setMirror(true);
                 //控件布局
-                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(360,360);
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,500);
                 layoutParams.topMargin = 20;
+                layoutParams.setMargins(4,4,4,4);
                 remoteVideoLl.addView(remoteView,layoutParams);
                 //添加至hashmap中
                 remoteViews.put(peerId,remoteView);

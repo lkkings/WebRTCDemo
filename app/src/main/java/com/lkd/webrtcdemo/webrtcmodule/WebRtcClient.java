@@ -1,12 +1,12 @@
 package com.lkd.webrtcdemo.webrtcmodule;
 
 import android.content.Context;
-import android.opengl.EGLContext;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.lkd.webrtcdemo.activity.MainActivity;
-import com.lkd.webrtcdemo.constant.WebRTCConfig;
+import com.lkd.webrtcdemo.webrtcmodule.constant.ICEServer;
+import com.lkd.webrtcdemo.webrtcmodule.constant.SocketIOServer;
+import com.lkd.webrtcdemo.webrtcmodule.constant.WebRTC;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,7 +20,6 @@ import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
-import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
@@ -143,19 +142,7 @@ public class WebRtcClient {
     /**
      * 录屏保存路径
      */
-    public String filePath;
-    ////webRtc定义常量////
-    private static final String AUDIO_ECHO_CANCELLATION_CONSTRAINT = "googEchoCancellation";
-    private static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
-    private static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
-    private static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
-    private static final String VIDEO_FLEXFEC_FIELDTRIAL =
-            "WebRTC-FlexFEC-03-Advertised/Enabled/WebRTC-FlexFEC-03/Enabled/";
-    private static final String VIDEO_VP8_INTEL_HW_ENCODER_FIELDTRIAL = "WebRTC-IntelVP8/Enabled/";
-    private static final String DISABLE_WEBRTC_AGC_FIELDTRIAL =
-            "WebRTC-Audio-MinimizeResamplingOnMobile/Enabled/";
-    public static final int FONT_FACTING = 0 ;
-    public static final int BACK_FACING = 1 ;
+    private String filePath;
 
     public WebRtcClient(Context appContext,
                         EglBase eglBase,
@@ -182,6 +169,10 @@ public class WebRtcClient {
         return rtcListener;
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
     public String getSocketId() {
         return socketId;
     }
@@ -189,19 +180,21 @@ public class WebRtcClient {
     public String getRoomId() {
         return roomId;
     }
-
-    //创建IceServers参数
+    /**
+     * 创建IceServers参数
+     */
     private void createIceServers() {
-        PeerConnection.IceServer stunServer = PeerConnection.IceServer.builder(WebRTCConfig.STUN_HOST).createIceServer();
+        PeerConnection.IceServer stunServer = PeerConnection.IceServer.builder(ICEServer.STUN_HOST).createIceServer();
         iceServers.add(stunServer);
-        PeerConnection.IceServer turnServer = PeerConnection.IceServer.builder(WebRTCConfig.TURN_HOST)
-                .setUsername(WebRTCConfig.TURN_USER)
-                .setPassword(WebRTCConfig.TURN_PASS)
+        PeerConnection.IceServer turnServer = PeerConnection.IceServer.builder(ICEServer.TURN_HOST)
+                .setUsername(ICEServer.TURN_USER)
+                .setPassword(ICEServer.TURN_PASS)
                 .createIceServer();
         iceServers.add(turnServer);
     }
-
-    //创建RTCConfiguration参数
+    /**
+     *  创建RTCConfiguration参数
+     */
     private void createRtcConfig() {
         rtcConfig =
                 new PeerConnection.RTCConfiguration(iceServers);
@@ -217,9 +210,9 @@ public class WebRtcClient {
         rtcConfig.enableDtlsSrtp = !pcParams.loopback;
         rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
     }
-
-
-    //创建PeerConnection工厂类
+    /**
+     * 创建PeerConnection工厂类
+     */
     private void createPeerConnectionFactoryInternal() {
         //创建webRtc连接工厂类
         final VideoEncoderFactory encoderFactory;
@@ -242,11 +235,11 @@ public class WebRtcClient {
         //PeerConnectionFactory.initialize
         String fieldTrials = "";
         if (pcParams.videoFlexfecEnabled) {
-            fieldTrials += VIDEO_FLEXFEC_FIELDTRIAL;
+            fieldTrials += WebRTC.VIDEO_FLEXFEC_FIELDTRIAL;
         }
-        fieldTrials += VIDEO_VP8_INTEL_HW_ENCODER_FIELDTRIAL;
+        fieldTrials += WebRTC.VIDEO_VP8_INTEL_HW_ENCODER_FIELDTRIAL;
         if (pcParams.disableWebRtcAGCAndHPF) {
-            fieldTrials += DISABLE_WEBRTC_AGC_FIELDTRIAL;
+            fieldTrials += WebRTC.DISABLE_WEBRTC_AGC_FIELDTRIAL;
         }
         //PeerConnectionFactory.initialize
         PeerConnectionFactory.initialize(
@@ -264,14 +257,14 @@ public class WebRtcClient {
                 .createPeerConnectionFactory();
 
     }
-
-    //创建信令服务器及监听
+    /**
+     * 创建信令服务器及监听
+     */
     private void createSocket() {
         //socket模式连接信令服务器
         try {
             //普通连接
             //client = IO.socket(host);
-
             //SSL加密连接
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .hostnameVerifier(new HostnameVerifier() {
@@ -287,7 +280,7 @@ public class WebRtcClient {
             IO.Options opts = new IO.Options();
             opts.callFactory = okHttpClient;
             opts.webSocketFactory = okHttpClient;
-            client = IO.socket(WebRTCConfig.SOCKET_HOST, opts);
+            client = IO.socket(SocketIOServer.SOCKET_HOST, opts);
 
             ////设置消息监听
             //created [id,room,peers]
@@ -308,9 +301,10 @@ public class WebRtcClient {
             e.printStackTrace();
         }
     }
-
-    /** UI操作相关 */
-    //创建并加入
+    // UI操作相关
+    /**
+     * 创建并加入
+     */
     public void createAndJoinRoom(String roomId){
         //构建信令数据并发送
         try {
@@ -323,7 +317,9 @@ public class WebRtcClient {
         }
     }
 
-    //退出room
+    /**
+     * 退出room
+     */
     public void exitRoom(){
         //信令服务器发送 exit [from room]
         try {
@@ -347,7 +343,6 @@ public class WebRtcClient {
         //通知UI清空远端摄像头
         ((MainActivity)rtcListener).clearRemoteCamera();
     }
-
     //WebRtc相关
     /**
      *  构建webRtc连接并返回
@@ -376,7 +371,7 @@ public class WebRtcClient {
                 String cameraname = "";
                 Camera1Enumerator camera1Enumerator = new Camera1Enumerator();
                 String[] deviceNames = camera1Enumerator.getDeviceNames();
-                if (type == FONT_FACTING){
+                if (type == WebRTC.FONT_FACTING){
                     //前置摄像头
                     for (String deviceName : deviceNames){
                         if (camera1Enumerator.isFrontFacing(deviceName)){
@@ -402,11 +397,11 @@ public class WebRtcClient {
                 cameraVideoCapturer.startCapture(pcParams.videoWidth,pcParams.videoHeight,pcParams.videoFps);
 
 
-                localVideoTrack = factory.createVideoTrack(WebRTCConfig.VIDEO_TRACK_ID, localVideoSource);
+                localVideoTrack = factory.createVideoTrack(WebRTC.VIDEO_TRACK_ID, localVideoSource);
                 localVideoTrack.setEnabled(true);
                 localVideoTrack.addSink(localRender);
 
-                localAudioTrack = factory.createAudioTrack(WebRTCConfig.AUDIO_TRACK_ID,localAudioSource);
+                localAudioTrack = factory.createAudioTrack(WebRTC.AUDIO_TRACK_ID,localAudioSource);
                 localAudioTrack.setEnabled(true);
 
             }else{
@@ -437,14 +432,17 @@ public class WebRtcClient {
         videoFileRenderer.release();
         videoFileRenderer = null;
     }
-    //切换摄像头
+    /**
+     * 切换摄像头
+     */
     public void switchCamera(){
         if(cameraVideoCapturer != null){
             cameraVideoCapturer.switchCamera(null);
         }
     }
-
-    //关闭摄像头
+    /**
+     * 关闭摄像头
+     */
     public void closeCamera(){
         if(cameraVideoCapturer != null){
             try {
@@ -454,9 +452,10 @@ public class WebRtcClient {
             }
         }
     }
-
-    /** 信令服务器处理相关 **/
-    //created [id,room,peers]
+    // 信令服务器处理相关
+    /**
+     * created [id,room,peers]
+     */
     private Emitter.Listener createdListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -483,8 +482,9 @@ public class WebRtcClient {
             }
         }
     };
-
-    //joined [id,room]
+    /**
+     * joined [id,room]
+     */
     private Emitter.Listener joinedListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -500,8 +500,9 @@ public class WebRtcClient {
             }
         }
     };
-
-    //offer [from,to,room,sdp]
+    /**
+     * offer [from,to,room,sdp]
+     */
     private Emitter.Listener offerListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -527,7 +528,9 @@ public class WebRtcClient {
         }
     };
 
-    //answer [from,to,room,sdp]
+    /**
+     * answer [from,to,room,sdp]
+     */
     private Emitter.Listener answerListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -550,8 +553,9 @@ public class WebRtcClient {
             }
         }
     };
-
-    //candidate [from,to,room,candidate[sdpMid,sdpMLineIndex,sdp]]
+    /**
+     * candidate [from,to,room,candidate[sdpMid,sdpMLineIndex,sdp]]
+     */
     private Emitter.Listener candidateListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -577,8 +581,9 @@ public class WebRtcClient {
             }
         }
     };
-
-    //exit [from,room]
+    /**
+     * exit [from,room]
+     */
     private Emitter.Listener exitListener = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
@@ -608,8 +613,10 @@ public class WebRtcClient {
         client.emit(event, message);
     }
 
-    /** WebRtc 音视频相关辅助函数**/
-    //创建Media及Sdp约束
+    // WebRtc 音视频相关辅助函数
+    /**
+     * 创建Media及Sdp约束
+     */
     private void createMediaConstraintsInternal() {
         // 音频约束
         audioConstraints = new MediaConstraints();
@@ -617,13 +624,13 @@ public class WebRtcClient {
         if (pcParams.noAudioProcessing) {
             Log.d(TAG, "Disabling audio processing");
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"));
         }
 
         //SDP约束 createOffer  createAnswer
@@ -634,14 +641,15 @@ public class WebRtcClient {
                 "OfferToReceiveVideo", "true" ));
         sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair("DtlsSrtpKeyAgreement", "true"));
     }
-
-    //创建PeerConnection
+    /**
+     * 创建PeerConnection
+     */
     private void createPeerConnectionInternal() {
 
     }
-
-
-    //创建音频模式LegacyAudioDevice
+    /**
+     * 创建音频模式LegacyAudioDevice
+     */
     private AudioDeviceModule createLegacyAudioDevice() {
         // Enable/disable OpenSL ES playback.
         if (!pcParams.useOpenSLES) {
@@ -651,7 +659,6 @@ public class WebRtcClient {
             Log.d(TAG, "Allow OpenSL ES audio if device supports it");
             WebRtcAudioManager.setBlacklistDeviceForOpenSLESUsage(false);
         }
-
         if (pcParams.disableBuiltInAEC) {
             Log.d(TAG, "Disable built-in AEC even if device supports it");
             WebRtcAudioUtils.setWebRtcBasedAcousticEchoCanceler(true);
@@ -659,7 +666,6 @@ public class WebRtcClient {
             Log.d(TAG, "Enable built-in AEC if device supports it");
             WebRtcAudioUtils.setWebRtcBasedAcousticEchoCanceler(false);
         }
-
         if (pcParams.disableBuiltInNS) {
             Log.d(TAG, "Disable built-in NS even if device supports it");
             WebRtcAudioUtils.setWebRtcBasedNoiseSuppressor(true);
@@ -667,9 +673,7 @@ public class WebRtcClient {
             Log.d(TAG, "Enable built-in NS if device supports it");
             WebRtcAudioUtils.setWebRtcBasedNoiseSuppressor(false);
         }
-
         //WebRtcAudioRecord.setOnAudioSamplesReady(saveRecordedAudioToFile);
-
         // Set audio record error callbacks.
         WebRtcAudioRecord.setErrorCallback(new WebRtcAudioRecord.WebRtcAudioRecordErrorCallback() {
             @Override
@@ -709,14 +713,14 @@ public class WebRtcClient {
 
         return new LegacyAudioDeviceModule();
     }
-
-    //创建音频模式JavaAudioDevice
+    /**
+     * 创建音频模式JavaAudioDevice
+     */
     private AudioDeviceModule createJavaAudioDevice() {
         // Enable/disable OpenSL ES playback.
         if (!pcParams.useOpenSLES) {
             Log.w(TAG, "External OpenSLES ADM not implemented yet.");
         }
-
         // Set audio record error callbacks.
         JavaAudioDeviceModule.AudioRecordErrorCallback audioRecordErrorCallback = new JavaAudioDeviceModule.AudioRecordErrorCallback() {
             @Override
@@ -773,10 +777,11 @@ public class WebRtcClient {
                 .createAudioDeviceModule();
     }
 
-    //返回SSLSocketFactory 用于ssl连接
+    /**
+     * 返回SSLSocketFactory 用于ssl连接
+     */
     private  SSLSocketFactory getSSLSocketFactory() {
         SSLSocketFactory ssfFactory = null;
-
         try {
             SSLContext sc = SSLContext.getInstance("TLS");
             sc.init(null, new TrustManager[]{new TrustAllCerts()}, new SecureRandom());

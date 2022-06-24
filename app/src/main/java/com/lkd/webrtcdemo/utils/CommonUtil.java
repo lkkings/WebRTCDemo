@@ -1,4 +1,4 @@
-package com.lkd.webrtcdemo;
+package com.lkd.webrtcdemo.utils;
 
 import android.content.Context;
 import android.net.ConnectivityManager;

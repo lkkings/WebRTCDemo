@@ -1,10 +1,9 @@
-package com.lkd.webrtcdemo.constant;
+package com.lkd.webrtcdemo.webrtcmodule.constant;
 
-public class WebRTCConfig {
-    /**
-     * 信令服务器地址
-     */
-    public static final String SOCKET_HOST = "https://s.lkd.pub:8082";
+/**
+ * ICE服务器常量
+ */
+public class ICEServer {
     /**
      * TURN服务器地址
      */
@@ -21,12 +20,4 @@ public class WebRTCConfig {
      * STUN服务器
      */
     public static final String STUN_HOST = "stun:119.8.38.146:3478";
-    /**
-     *  音频ID
-     */
-    public static final String AUDIO_TRACK_ID = "AUDIO";
-    /**
-     * 视频ID
-     */
-    public static final String VIDEO_TRACK_ID = "VIDEO";
 }

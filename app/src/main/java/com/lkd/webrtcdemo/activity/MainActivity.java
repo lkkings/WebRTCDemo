@@ -1,7 +1,6 @@
 package com.lkd.webrtcdemo.activity;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -12,26 +11,20 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.lkd.webrtcdemo.R;
-import com.lkd.webrtcdemo.constant.WebRTCConfig;
 import com.lkd.webrtcdemo.utils.PermissionUtil;
 import com.lkd.webrtcdemo.webrtcmodule.PeerConnectionParameters;
 import com.lkd.webrtcdemo.webrtcmodule.RtcListener;
 import com.lkd.webrtcdemo.webrtcmodule.WebRtcClient;
-import com.yanzhenjie.permission.Action;
-import com.yanzhenjie.permission.AndPermission;
+import com.lkd.webrtcdemo.webrtcmodule.constant.WebRTC;
 import com.yanzhenjie.permission.Permission;
 import org.webrtc.EglBase;
 import org.webrtc.RendererCommon;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 
 public class MainActivity extends Activity implements RtcListener,View.OnClickListener{
     //控件
@@ -67,15 +60,19 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
      * 摄像头是否开启
      */
     private boolean isCameraOpen = false;
-
     /**
-     * 是否正在录制视频
+     * 是否处于录屏状态
      */
     private boolean isRecord = false;
     /**
-     * 是否拥有权限
+     * 录屏开始时间
      */
-    private boolean isHasStorage = false;
+    private long startTime = -1;
+    /**
+     * 录屏结束时间
+     */
+    private long stopTime = -1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +108,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
         super.onResume();
         //某些机型锁屏点亮后需要重新开启摄像头
         if (isCameraOpen){
-            webRtcClient.startCamera(localSurfaceViewRenderer,WebRtcClient.FONT_FACTING);
+            webRtcClient.startCamera(localSurfaceViewRenderer, WebRTC.FONT_FACTING);
         }
     }
 
@@ -194,6 +191,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                         break;
                     }
                     webRtcClient.startRecord();
+                    startTime = System.currentTimeMillis();
                     isRecord = true;
                     startRecord.setEnabled(false);
                     stopRecord.setEnabled(true);
@@ -205,14 +203,25 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                 break;
             case R.id.stopRecord:
                 webRtcClient.stopRecord();
+                stopTime = System.currentTimeMillis();
                 isRecord = false;
                 startRecord.setEnabled(true);
                 stopRecord.setEnabled(false);
                 Toast.makeText(this,"停止录制屏幕",Toast.LENGTH_SHORT).show();
                 break;
             case R.id.saveLocal:
+                if (!isRecord) {
+                    Toast.makeText(this, "请先开启录制", Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                if (stopTime - startTime < 1000){
+                    Toast.makeText(this, "录制时间太短", Toast.LENGTH_SHORT).show();
+                    break;
+                }
                 webRtcClient.saveLocal();
-                Toast.makeText(MainActivity.this, "文件保存在"+webRtcClient.filePath, Toast.LENGTH_SHORT).show();
+                startTime = -1;
+                stopTime = -1;
+                Toast.makeText(MainActivity.this, "文件保存在"+webRtcClient.getFilePath(), Toast.LENGTH_SHORT).show();
                 break;
             default:
                 break;
@@ -263,7 +272,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
         localSurfaceViewRenderer.setMirror(true);
         localSurfaceViewRenderer.setBackground(null);
         //启动摄像头
-        webRtcClient.startCamera(localSurfaceViewRenderer,WebRtcClient.FONT_FACTING);
+        webRtcClient.startCamera(localSurfaceViewRenderer,WebRTC.FONT_FACTING);
         //状态设置
         isCameraOpen = true;
         openCamera.setText("关闭摄像头");

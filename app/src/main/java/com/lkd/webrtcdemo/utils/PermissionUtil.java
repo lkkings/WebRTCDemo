@@ -1,18 +1,10 @@
 package com.lkd.webrtcdemo.utils;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.net.Uri;
-import android.provider.Settings;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
-
 import com.yanzhenjie.permission.AndPermission;
-import com.yanzhenjie.permission.RequestExecutor;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class PermissionUtil {

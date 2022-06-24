@@ -28,6 +28,8 @@ public class Peer implements SdpObserver, PeerConnection.Observer {
     private String id;
     //webRtClient对象
     private WebRtcClient webRtcClient;
+    //记录Peer的音频流
+    private VideoTrack videoTrack;
 
     //日志Tag
     private final static String TAG = Peer.class.getCanonicalName();
@@ -151,6 +153,11 @@ public class Peer implements SdpObserver, PeerConnection.Observer {
         }
 
     }
+
+    public VideoTrack getVideoTrack() {
+        return videoTrack;
+    }
+
     //ice地址被移除掉触发
     @Override
     public void onIceCandidatesRemoved(IceCandidate[] iceCandidates) {
@@ -193,7 +200,8 @@ public class Peer implements SdpObserver, PeerConnection.Observer {
         MediaStreamTrack track = transceiver.getReceiver().track();
         Log.d(TAG,"onTrack "+ track.id());
         if (track instanceof VideoTrack) {
-            webRtcClient.getRtcListener().onAddRemoteStream(id,(VideoTrack)track);
+            videoTrack = (VideoTrack)track;
+            webRtcClient.getRtcListener().onAddRemoteStream(id,videoTrack);
         }
     }
 }

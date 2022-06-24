@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.lkd.webrtcdemo.R;
 import com.lkd.webrtcdemo.constant.WebRTCConfig;
+import com.lkd.webrtcdemo.utils.PermissionUtil;
 import com.lkd.webrtcdemo.webrtcmodule.PeerConnectionParameters;
 import com.lkd.webrtcdemo.webrtcmodule.RtcListener;
 import com.lkd.webrtcdemo.webrtcmodule.WebRtcClient;
@@ -74,7 +75,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
     /**
      * 是否拥有权限
      */
-    private boolean isHasRecord = false;
+    private boolean isHasStorage = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +144,12 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.openCamera:
+                if (!PermissionUtil.chick(this,Permission.Group.CAMERA)){
+                    break;
+                }
+                if (!PermissionUtil.chick(this,Permission.Group.MICROPHONE)){
+                    break;
+                }
                 //开启_关闭摄像头
                 if(isCameraOpen){
                     //关闭
@@ -155,8 +162,7 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                     isCameraOpen = false;
                     openCamera.setText("开启摄像头");
                 }else{
-                    //开启
-                    openCamera();
+                    startCamera();
                 }
                 break;
             case R.id.switchCamera:
@@ -184,14 +190,14 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                         Toast.makeText(this,"请先开启摄像头",Toast.LENGTH_SHORT).show();
                         break;
                     }
-                    openRecord();
-                    if (isHasRecord) {
-                        webRtcClient.startRecord();
-                        isRecord = true;
-                        startRecord.setEnabled(false);
-                        stopRecord.setEnabled(true);
-                        Toast.makeText(this, "开始录制屏幕", Toast.LENGTH_SHORT).show();
+                    if (!PermissionUtil.chick(this,Permission.Group.STORAGE)){
+                        break;
                     }
+                    webRtcClient.startRecord();
+                    isRecord = true;
+                    startRecord.setEnabled(false);
+                    stopRecord.setEnabled(true);
+                    Toast.makeText(this, "开始录制屏幕", Toast.LENGTH_SHORT).show();
                     break;
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -242,59 +248,6 @@ public class MainActivity extends Activity implements RtcListener,View.OnClickLi
                 rootEglBase,
                 peerConnectionParameters,
                 MainActivity.this);
-    }
-
-    /**
-     * 本地摄像头创建
-     */
-    private void openCamera(){
-        if(AndPermission.hasPermissions(this,Permission.Group.CAMERA,Permission.Group.MICROPHONE)){
-            startCamera();
-        }else{
-            AndPermission.with(this)
-                    .runtime()
-                    .permission(Permission.Group.CAMERA,Permission.Group.MICROPHONE)
-                    .onGranted(new Action<List<String>>() {
-                        @Override
-                        public void onAction(List<String> data) {
-                            //申请权限成功
-                            startCamera();
-                        }
-                    })
-                    .onDenied(new Action<List<String>>() {
-                        @Override
-                        public void onAction(List<String> data) {
-                            //当用户没有允许该权限时，回调该方法
-                            Toast.makeText(MainActivity.this, "没有获取照相机权限，该功能无法使用", Toast.LENGTH_SHORT).show();
-                        }
-                    }).start();
-        }
-    }
-    /**
-     * 开启录音权限
-     */
-    private void openRecord(){
-        if(!AndPermission.hasPermissions(this,Permission.Group.STORAGE)){
-            AndPermission.with(this)
-                    .runtime()
-                    .permission(Permission.Group.STORAGE)
-                    .onGranted(new Action<List<String>>() {
-                        @Override
-                        public void onAction(List<String> data) {
-                            isHasRecord = true;
-                        }
-                    })
-                    .onDenied(new Action<List<String>>() {
-                        @Override
-                        public void onAction(List<String> data) {
-                            //当用户没有允许该权限时，回调该方法
-                            Toast.makeText(MainActivity.this, "没有获取文件操作权限，该功能无法使用", Toast.LENGTH_SHORT).show();
-                        }
-                    }).start();
-        }
-        else {
-            isHasRecord = true;
-        }
     }
 
     /**

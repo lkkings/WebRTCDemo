@@ -13,11 +13,14 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles 'proguard-rules.pro'//
     }
 
     buildTypes {
+
         release {
-            minifyEnabled false
+
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -32,10 +35,13 @@ dependencies {
     implementation 'com.google.android.material:material:1.4.0'
     //动态权限申请
     implementation 'com.yanzhenjie:permission:2.0.0-rc12'
-
+    //mp4
+    implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
+    //webrtc
     implementation 'org.webrtc:google-webrtc:1.0.25331'
     implementation('io.socket:socket.io-client:1.0.0') {
         // excluding org.json which is provided by Android
         exclude group: 'org.json', module: 'json'
     }
+    testImplementation 'junit:junit:4.12'
 }

@@ -29,7 +29,6 @@ import org.webrtc.SoftwareVideoEncoderFactory;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoDecoderFactory;
 import org.webrtc.VideoEncoderFactory;
-import org.webrtc.VideoFileRenderer;
 import org.webrtc.VideoSink;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
@@ -138,7 +137,7 @@ public class WebRtcClient {
      */
     private String  roomId;
     /**
-     * 音频录制
+     * 音视频录制
      */
     private VideoFileRenderer videoFileRenderer;
     /**
@@ -263,6 +262,7 @@ public class WebRtcClient {
                 .setVideoEncoderFactory(encoderFactory)
                 .setVideoDecoderFactory(decoderFactory)
                 .createPeerConnectionFactory();
+
     }
 
     //创建信令服务器及监听
@@ -419,7 +419,7 @@ public class WebRtcClient {
      */
     public void startRecord() throws IOException {
         filePath = appContext.getExternalFilesDir(null).getAbsolutePath() + File.separator + System.currentTimeMillis() + ".mp4";
-        videoFileRenderer = new VideoFileRenderer(filePath,120,120,eglBase.getEglBaseContext());
+        videoFileRenderer = new VideoFileRenderer(filePath, eglBase.getEglBaseContext(), true);
         localVideoTrack.addSink(videoFileRenderer);
     }
     /**
@@ -715,7 +715,6 @@ public class WebRtcClient {
         // Enable/disable OpenSL ES playback.
         if (!pcParams.useOpenSLES) {
             Log.w(TAG, "External OpenSLES ADM not implemented yet.");
-            // TODO(magjed): Add support for external OpenSLES ADM.
         }
 
         // Set audio record error callbacks.
@@ -760,7 +759,7 @@ public class WebRtcClient {
             public void onWebRtcAudioRecordSamplesReady(JavaAudioDeviceModule.AudioSamples audioSamples) {
                 if (videoFileRenderer != null) {
                     // 把音频数据传给VideoFileRenderer
-
+                    videoFileRenderer.onWebRtcAudioRecordSamplesReady(audioSamples);
                 }
             }
         };

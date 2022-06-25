@@ -7,6 +7,10 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.androidTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/WebRTCDemo.app.unitTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.iml" filepath="$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.main.iml" filepath="$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/robot/WebRTCDemo.robot.unitTest.iml" />
     </modules>
   </component>
 </project>

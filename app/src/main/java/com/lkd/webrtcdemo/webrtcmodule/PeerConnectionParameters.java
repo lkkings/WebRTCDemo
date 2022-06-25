@@ -2,7 +2,6 @@ package com.lkd.webrtcdemo.webrtcmodule;
 
 /**
  * PeerConnection连接参数
- * Created by chengshaobo on 2018/10/24.
  */
 
 public class PeerConnectionParameters {

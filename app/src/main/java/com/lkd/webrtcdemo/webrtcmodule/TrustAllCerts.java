@@ -6,7 +6,6 @@ import javax.net.ssl.X509TrustManager;
 
 /**
  * SSL全部信任
- * Created by chengshaobo on 2018/10/25.
  */
 
 

@@ -4,7 +4,6 @@ import org.webrtc.VideoTrack;
 
 /**
  * UI页面事件监听
- * Created by chengshaobo on 2018/10/26.
  */
 
 public interface RtcListener {

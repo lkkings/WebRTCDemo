@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "WebRTCDemo"
 include ':app'
 include ':robot'
+include ':permissionmodel'
+include ':webrtcmodel'

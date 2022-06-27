@@ -11,7 +11,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/permissionmodel" />
             <option value="$PROJECT_DIR$/robot" />
+            <option value="$PROJECT_DIR$/webrtcmodel" />
           </set>
         </option>
       </GradleProjectSettings>

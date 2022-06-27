@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.lkd.webrtcdemo.R;
-import com.lkd.webrtcdemo.webrtcmodule.Peer;
+import com.lkd.webrtcmodel.peer.Peer;
 
 import java.util.List;
 

@@ -4,7 +4,7 @@
     android:layout_height="match_parent">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
@@ -25,7 +25,7 @@
                 android:id="@+id/openCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="启动摄像头" />
 
             <!-- 启动摄像头-->
@@ -33,7 +33,7 @@
                 android:id="@+id/switchCamera"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="切换摄像头" />
 
             <!-- 创建并加入-->
@@ -41,7 +41,7 @@
                 android:id="@+id/create"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="进入" />
             <!-- 退出-->
             <Button
@@ -51,7 +51,7 @@
                 android:text="退出" />
         </LinearLayout>
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="horizontal">
@@ -60,7 +60,7 @@
                 android:id="@+id/startRecord"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="开始录制" />
 
             <!--停止录制-->
@@ -68,7 +68,7 @@
                 android:id="@+id/stopRecord"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="停止录制" />
 
             <!-- 保存本地-->
@@ -76,7 +76,7 @@
                 android:id="@+id/saveLocal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="4dp"
+                android:layout_marginRight="1dp"
                 android:text="保存本地" />
             <!--保存云端-->
             <Button

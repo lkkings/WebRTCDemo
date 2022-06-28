@@ -16,6 +16,8 @@ import com.lkd.webrtcmodel.peer.PeerListener;
 import com.lkd.webrtcmodel.peer.PeerRenderer;
 
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.webrtc.EglBase;
 import org.webrtc.RendererCommon;
 import org.webrtc.SurfaceViewRenderer;
@@ -60,6 +62,11 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
      */
     public String filePath;
 
+    /**
+     * 是否处于连接状态
+     */
+    public boolean isLine;
+
     public WebRTCServer(@NonNull Activity activity){
         this.eglBase = EglBase.create();
         this.activity = activity;
@@ -103,13 +110,19 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
      * @param roomId 开启服务的房间id
      */
     public void startRemoteServer(String roomId){
+        if (isLine)
+            return;
         webRtcClient.createAndJoinRoom(roomId);
+        isLine = true;
     }
     /**
      * 关闭远程服务
      */
     public void stopRemoteServer(){
+        if (!isLine)
+            return;
         webRtcClient.exitRoom();
+        isLine = false;
     }
 
     /**
@@ -121,7 +134,7 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
             return;
         initSurfaceView(localSurfaceView);
         //启动摄像头
-        webRtcClient.startCamera(localSurfaceView,WebRTC.FONT_FACTING);
+        webRtcClient.startByCamera(localSurfaceView,WebRTC.FONT_FACTING);
         //状态设置
         isCameraOpen = true;
     }
@@ -131,7 +144,7 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
      */
     public void restartCameraOnView(SurfaceViewRenderer localSurfaceView){
         if (isCameraOpen)
-            webRtcClient.startCamera(localSurfaceView,WebRTC.FONT_FACTING);
+            webRtcClient.startByCamera(localSurfaceView,WebRTC.FONT_FACTING);
     }
     public void closeCameraOnView(SurfaceViewRenderer localSurfaceView){
         if (!isCameraOpen)
@@ -168,6 +181,9 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
         webRtcClient.stopRecord();
         isRecord = false;
     }
+    public String getDirPath(){
+        return webRtcClient.getDirPath();
+    }
 
     public void saveRecord(){
         if (isRecord)
@@ -185,6 +201,25 @@ public abstract class WebRTCServer implements RtcListener, PeerListener, PeerRen
         surfaceViewRenderer.setEnableHardwareScaler(false);
         surfaceViewRenderer.setMirror(true);
         surfaceViewRenderer.setBackground(null);
+    }
+
+    public void sendCommand(String peerId,String command){
+        if (!isLine)
+            return;
+        webRtcClient.executeCommand(peerId,command);
+    }
+
+    public void sendExecResult(String to,String exec, JSONObject data){
+        if (!isLine)
+            return;
+        try {
+            JSONObject result = new JSONObject();
+            result.put("exec",exec);
+            result.put("data",data);
+            webRtcClient.executeResult(to,result);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
 }

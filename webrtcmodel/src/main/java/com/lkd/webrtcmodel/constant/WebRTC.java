@@ -4,12 +4,21 @@ package com.lkd.webrtcmodel.constant;
  * WebRTC定义常量
  */
 public class WebRTC {
+    /**
+     * 回声消除
+     */
     public static final String AUDIO_ECHO_CANCELLATION_CONSTRAINT = "googEchoCancellation";
-    
+    /**
+     * 自动增益
+     */
     public static final String AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT = "googAutoGainControl";
-    
+    /**
+     * 高音过滤
+     */
     public static final String AUDIO_HIGH_PASS_FILTER_CONSTRAINT = "googHighpassFilter";
-    
+    /**
+     * 噪音处理
+     */
     public static final String AUDIO_NOISE_SUPPRESSION_CONSTRAINT = "googNoiseSuppression";
     
     public static final String VIDEO_FLEXFEC_FIELDTRIAL = "WebRTC-FlexFEC-03-Advertised/Enabled/WebRTC-FlexFEC-03/Enabled/";

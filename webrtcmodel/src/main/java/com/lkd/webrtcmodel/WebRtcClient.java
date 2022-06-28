@@ -9,6 +9,7 @@ import android.util.Log;
 import com.lkd.webrtcmodel.constant.ICEServer;
 import com.lkd.webrtcmodel.constant.SocketIOServer;
 import com.lkd.webrtcmodel.constant.WebRTC;
+import com.lkd.webrtcmodel.handler.SignallingHandler;
 import com.lkd.webrtcmodel.peer.Peer;
 import com.lkd.webrtcmodel.peer.PeerConnectionParameters;
 import com.lkd.webrtcmodel.peer.PeerListener;
@@ -26,6 +27,7 @@ import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
+import org.webrtc.FileVideoCapturer;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
 import org.webrtc.PeerConnection;
@@ -76,15 +78,15 @@ public class WebRtcClient {
     /**
      * PeerConnectionFactory工厂类
      */
-    private PeerConnectionFactory factory;
+    public PeerConnectionFactory factory;
     /**
      * Peer集合，socketID为键，Peer为值
      */
-    private HashMap<String, Peer> peers = new HashMap<>();
+    public HashMap<String, Peer> peers = new HashMap<>();
     /**
      * Peer列表
      */
-    private List<Peer> peerList = new ArrayList<>();
+    public List<Peer> peerList = new ArrayList<>();
     /**
      * IceServer集合 用于构建PeerConnection
      */
@@ -96,7 +98,7 @@ public class WebRtcClient {
     /**
      * PeerConnect构建参数
      */
-    PeerConnection.RTCConfiguration rtcConfig;
+    public PeerConnection.RTCConfiguration rtcConfig;
     /**
      * PeerConnect 音频约束
      */
@@ -104,7 +106,7 @@ public class WebRtcClient {
     /**
      * PeerConnect sdp约束
      */
-    private MediaConstraints sdpMediaConstraints;
+    public MediaConstraints sdpMediaConstraints;
     /**
      * 本地Video视频资源
      */
@@ -112,7 +114,7 @@ public class WebRtcClient {
     /**
      * 视频Track
      */
-    private VideoTrack localVideoTrack;
+    public VideoTrack localVideoTrack;
     /**
      * 本地Audio音频资源
      */
@@ -120,11 +122,15 @@ public class WebRtcClient {
     /**
      * 音频Track
      */
-    private AudioTrack localAudioTrack;
+    public AudioTrack localAudioTrack;
     /**
      * 本地摄像头视频捕获
      */
     private CameraVideoCapturer cameraVideoCapturer;
+    /**
+     * 视频文件视频捕获
+     */
+    private FileVideoCapturer fileVideoCapturer;
     /**
      * 页面context
      */
@@ -136,7 +142,7 @@ public class WebRtcClient {
     /**
      * RtcListener回调接口
      */
-    private RtcListener rtcListener;
+    public RtcListener rtcListener;
     /**
      * socket.io信令交互
      */
@@ -157,7 +163,10 @@ public class WebRtcClient {
      * 录屏保存路径
      */
     private String filePath;
-
+    /**
+     * 录屏保文件夹
+     */
+    private String dirPath ;
     /**
      *当前录制对象的PeerId
      */
@@ -169,28 +178,13 @@ public class WebRtcClient {
     /**
      *peer监听
      */
-    private PeerListener peerListener;
+    public PeerListener peerListener;
     /**
      * 呈现接口
      */
     private PeerRenderer peerRenderer;
 
-    private Handler handler = new Handler()
-    {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what)
-            {
-                case 1:
-                    peerListener.atPeerJoin();
-                case 2:
-                    peerListener.atPeerLeave();
-                default:
-                    break;
-            }
-        }
-    };
+
 
     public WebRtcClient(Activity activity,
                         EglBase eglBase,
@@ -204,6 +198,7 @@ public class WebRtcClient {
         this.rtcListener = listener;
         this.peerListener = peerListener;
         this.peerRenderer = peerRenderer;
+        this.dirPath = appContext.getExternalFilesDir(null).getAbsolutePath();
         //PeerConnectionFactory工厂类构建
         createPeerConnectionFactoryInternal();
         //创建iceServers
@@ -221,6 +216,9 @@ public class WebRtcClient {
         return rtcListener;
     }
 
+    public String getDirPath() {
+        return dirPath;
+    }
 
     public String getFilePath() {
         return filePath;
@@ -230,9 +228,16 @@ public class WebRtcClient {
         return socketId;
     }
 
-
     public String getRoomId() {
         return roomId;
+    }
+
+    public void setSocketId(String socketId) {
+        this.socketId = socketId;
+    }
+
+    public void setRoomId(String roomId) {
+        this.roomId = roomId;
     }
     /**
      * 创建IceServers参数
@@ -335,20 +340,25 @@ public class WebRtcClient {
             opts.callFactory = okHttpClient;
             opts.webSocketFactory = okHttpClient;
             client = IO.socket(SocketIOServer.SOCKET_HOST, opts);
-
+            //设置监听
+            SignallingHandler.setWebRtcClient(this);
             ////设置消息监听
             //created [id,room,peers]
-            client.on("created", createdListener);
+            client.on("created", SignallingHandler.createdListener);
             //joined [id,room]
-            client.on("joined", joinedListener);
+            client.on("joined", SignallingHandler.joinedListener);
             //offer [from,to,room,sdp]
-            client.on("offer", offerListener);
+            client.on("offer", SignallingHandler.offerListener);
             //answer [from,to,room,sdp]
-            client.on("answer", answerListener);
+            client.on("answer", SignallingHandler.answerListener);
             //candidate [from,to,room,candidate[sdpMid,sdpMLineIndex,sdp]]
-            client.on("candidate", candidateListener);
+            client.on("candidate", SignallingHandler.candidateListener);
             //exit [from,room]
-            client.on("exit", exitListener);
+            client.on("exit", SignallingHandler.exitListener);
+            //command [from,to,command]
+            client.on("command",SignallingHandler.commandListener);
+            //executed
+            client.on("executed",SignallingHandler.executeListener);
             //开始连接
             client.connect();
         } catch (URISyntaxException e) {
@@ -367,6 +377,36 @@ public class WebRtcClient {
             //向信令服务器发送信令
             sendMessage("createAndJoinRoom",message);
         }catch (JSONException e){
+            e.printStackTrace();
+        }
+    }
+    /**
+     * 发送命令
+     */
+    public void executeCommand(String peerId,String command){
+        curRecordPeerId = peerId==null ? socketId: peerId;
+        try {
+            JSONObject message = new JSONObject();
+            message.put("from",socketId);
+            message.put("to",curRecordPeerId);
+            message.put("message",command);
+            sendMessage("command",message);
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
+    }
+    /**
+     * 对命令执行结果进行反馈
+     */
+    public void executeResult(String to,JSONObject result){
+        try {
+            JSONObject message = new JSONObject();
+            message.put("from",socketId);
+            message.put("to",to);
+            message.put("message",result);
+            sendMessage("executed",message);
+            System.out.println("===========================================");
+        } catch (JSONException e){
             e.printStackTrace();
         }
     }
@@ -397,32 +437,11 @@ public class WebRtcClient {
         peerRenderer.clear();
     }
     //WebRtc相关
-    /**
-     *  构建webRtc连接并返回
-     */
-    private Peer getOrCreateRtcConnect(String socketId) {
-        Peer pc = peers.get(socketId);
-        if (pc == null) {
-            //构建RTCPeerConnection PeerConnection相关回调进入Peer中
-            pc = new Peer(socketId,factory,rtcConfig,WebRtcClient.this);
-            //设置本地数据流
-            pc.getPc().addTrack(localVideoTrack);
-            pc.getPc().addTrack(localAudioTrack);
-            //保存peer连接
-            peers.put(socketId,pc);
-            peerList.add(pc);
-
-            Message message = Message.obtain();
-            message.what = 1;
-            handler.sendMessage(message);
-        }
-        return pc;
-    }
 
     /**
      * 启动摄像头进行视频采集关联video
      */
-    public void startCamera(VideoSink localRender,int type){
+    public void startByCamera(VideoSink localRender,int type){
         if(pcParams.videoCallEnabled){
             //创建VideoCapturer
             if (cameraVideoCapturer == null){
@@ -468,14 +487,48 @@ public class WebRtcClient {
         }
     }
     /**
+     * 打开文件进行视频采集
+     */
+    public void startByFile(String filePath,VideoSink videoSink) throws IOException {
+        if (pcParams.videoCallEnabled){
+            if (fileVideoCapturer == null){
+                fileVideoCapturer = new FileVideoCapturer(filePath);
+
+                SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper
+                        .create("CaptureThread", eglBase.getEglBaseContext());
+
+
+                localVideoSource = factory.createVideoSource(false);
+                localAudioSource = factory.createAudioSource(audioConstraints);
+
+                fileVideoCapturer.initialize(surfaceTextureHelper, appContext, localVideoSource.getCapturerObserver());
+                fileVideoCapturer.startCapture(pcParams.videoWidth,pcParams.videoHeight,pcParams.videoFps);
+
+                localVideoTrack = factory.createVideoTrack(WebRTC.VIDEO_TRACK_ID, localVideoSource);
+                localVideoTrack.setEnabled(true);
+                localVideoTrack.addSink(videoSink);
+
+                localAudioTrack = factory.createAudioTrack(WebRTC.AUDIO_TRACK_ID,localAudioSource);
+                localAudioTrack.setEnabled(true);
+            }
+            else {
+                fileVideoCapturer.startCapture(pcParams.videoWidth,pcParams.videoHeight,pcParams.videoFps);
+            }
+        }
+
+    }
+    /**
      * 开始录制视频
      */
     public void startRecord(String peerId) throws IOException {
-        filePath = appContext.getExternalFilesDir(null).getAbsolutePath() + File.separator + System.currentTimeMillis() + ".mp4";
+        filePath =  dirPath + File.separator + System.currentTimeMillis() + ".mp4";
         videoFileRenderer = new VideoFileRenderer(filePath, eglBase.getEglBaseContext(), true);
-        curRecordPeerId = peerId==null? socketId: peerId;
+        curRecordPeerId = peerId==null ? socketId: peerId;
         Peer pc = peers.get(peerId);
-        assert pc != null;
+        if (pc == null) {
+            localVideoTrack.addSink(videoFileRenderer);
+            return;
+        }
         pc.getVideoTrack().addSink(videoFileRenderer);
     }
     /**
@@ -484,7 +537,10 @@ public class WebRtcClient {
     public void stopRecord(){
         if (videoFileRenderer != null) {
             Peer pc = peers.get(curRecordPeerId);
-            assert pc != null;
+            if (pc == null) {
+                localVideoTrack.removeSink(videoFileRenderer);
+                return;
+            }
             pc.getVideoTrack().removeSink(videoFileRenderer);
         }
     }
@@ -515,166 +571,6 @@ public class WebRtcClient {
             }
         }
     }
-    // 信令服务器处理相关
-    /**
-     * created [id,room,peers]
-     */
-    private Emitter.Listener createdListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "created:" + data);
-            try {
-                //设置socket id
-                socketId = data.getString("id");
-                //设置room id
-                roomId = data.getString("room");
-                //获取peer数据
-                JSONArray peers = data.getJSONArray("peers");
-                //根据回应peers 循环创建WebRtcPeerConnection，创建成功后发送offer消息 [from,to,room,sdp]
-                for (int i = 0; i < peers.length(); i++) {
-                    JSONObject otherPeer = peers.getJSONObject(i);
-                    String otherSocketId = otherPeer.getString("id");
-                    //创建WebRtcPeerConnection
-                    Peer pc = getOrCreateRtcConnect(otherSocketId);
-                    //设置offer
-                    pc.getPc().createOffer(pc,sdpMediaConstraints);
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-    /**
-     * joined [id,room]
-     */
-    private Emitter.Listener joinedListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "joined:" + data);
-            try {
-                //获取新加入socketId
-                String fromId = data.getString("id");
-                //构建pcconnection
-                getOrCreateRtcConnect(fromId);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-    /**
-     * offer [from,to,room,sdp]
-     */
-    private Emitter.Listener offerListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "offer:" + data);
-            try {
-                //获取id
-                String fromId = data.getString("from");
-                //获取peer
-                Peer pc = getOrCreateRtcConnect(fromId);
-                //构建RTCSessionDescription参数
-                SessionDescription sdp = new SessionDescription(
-                        SessionDescription.Type.fromCanonicalForm("offer"),
-                        data.getString("sdp")
-                );
-                //设置远端setRemoteDescription
-                pc.getPc().setRemoteDescription(pc,sdp);
-                //设置answer
-                pc.getPc().createAnswer(pc,sdpMediaConstraints);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-
-    /**
-     * answer [from,to,room,sdp]
-     */
-    private Emitter.Listener answerListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "answer:" + data);
-            try {
-                //获取id
-                String fromId = data.getString("from");
-                //获取peer
-                Peer pc = getOrCreateRtcConnect(fromId);
-                //构建RTCSessionDescription参数
-                SessionDescription sdp = new SessionDescription(
-                        SessionDescription.Type.fromCanonicalForm("answer"),
-                        data.getString("sdp")
-                );
-                //设置远端setRemoteDescription
-                pc.getPc().setRemoteDescription(pc,sdp);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-    /**
-     * candidate [from,to,room,candidate[sdpMid,sdpMLineIndex,sdp]]
-     */
-    private Emitter.Listener candidateListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "candidate:" + data);
-            try {
-                //获取id
-                String fromId = data.getString("from");
-                //获取peer
-                Peer pc = getOrCreateRtcConnect(fromId);
-                //获取candidate
-                JSONObject candidate = data.getJSONObject("candidate");
-                IceCandidate iceCandidate = new IceCandidate(
-                        candidate.getString("sdpMid"), //描述协议id
-                        candidate.getInt("sdpMLineIndex"),//描述协议的行索引
-                        candidate.getString("sdp")//描述协议
-                );
-
-                //添加远端设备路由描述
-                pc.getPc().addIceCandidate(iceCandidate);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-    /**
-     * exit [from,room]
-     */
-    private Emitter.Listener exitListener = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONObject data = (JSONObject) args[0];
-            Log.d(TAG, "exit:" + data);
-            try {
-                //获取id
-                String fromId = data.getString("from");
-                //判断是否为当前连接
-                Peer pc = peers.get(fromId);
-                if (pc != null){
-                    //peer关闭
-                    getOrCreateRtcConnect(fromId).getPc().close();
-                    //删除peer对象
-                    peers.remove(fromId);
-                    peerList.remove(pc);
-                    //通知UI界面移除video
-                    rtcListener.onRemoveRemoteStream(fromId);
-                    Message message = Message.obtain();
-                    message.what = 2;
-                    handler.sendMessage(message);
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-
     /** 信令服务器发送消息 **/
     public void sendMessage(String event,JSONObject message){
         client.emit(event, message);
@@ -691,13 +587,13 @@ public class WebRtcClient {
         if (pcParams.noAudioProcessing) {
             Log.d(TAG, "Disabling audio processing");
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_ECHO_CANCELLATION_CONSTRAINT, "true"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_AUTO_GAIN_CONTROL_CONSTRAINT, "true"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_HIGH_PASS_FILTER_CONSTRAINT, "true"));
             audioConstraints.mandatory.add(
-                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "false"));
+                    new MediaConstraints.KeyValuePair(WebRTC.AUDIO_NOISE_SUPPRESSION_CONSTRAINT, "true"));
         }
 
         //SDP约束 createOffer  createAnswer
@@ -707,12 +603,6 @@ public class WebRtcClient {
         sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
                 "OfferToReceiveVideo", "true" ));
         sdpMediaConstraints.optional.add(new MediaConstraints.KeyValuePair("DtlsSrtpKeyAgreement", "true"));
-    }
-    /**
-     * 创建PeerConnection
-     */
-    private void createPeerConnectionInternal() {
-
     }
     /**
      * 创建音频模式LegacyAudioDevice

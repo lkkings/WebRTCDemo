@@ -50,6 +50,8 @@ public class Peer implements SdpObserver, PeerConnection.Observer {
         return pc;
     }
 
+
+
     public void setPc(PeerConnection pc) {
         this.pc = pc;
     }

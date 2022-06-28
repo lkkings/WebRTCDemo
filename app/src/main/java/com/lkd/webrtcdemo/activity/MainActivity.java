@@ -14,15 +14,22 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.lkd.webrtcdemo.R;
+import com.lkd.webrtcdemo.entity.File;
+import com.lkd.webrtcdemo.ui.FileAdapter;
 import com.lkd.webrtcdemo.ui.PeerAdapter;
+import com.lkd.webrtcdemo.utils.FileUtil;
 import com.lkd.webrtcdemo.utils.PermissionUtil;
 import com.lkd.webrtcmodel.WebRTCServer;
 import com.lkd.webrtcmodel.constant.WebRTC;
 import com.lkd.webrtcmodel.peer.Peer;
 import com.yanzhenjie.permission.Permission;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -37,10 +44,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button stopRecord;
     private Button saveLocal;
     private Button saveCould;
+    private EditText commandName;
+    private Button execute;
     private SurfaceViewRenderer localSurfaceViewRenderer;
     private LinearLayout remoteVideoLl;
     private HashMap<String,View> remoteViews;
     private ListView peerListView;
+    private ListView fileListView;
     /**
      * 记录用户首次点击返回键的时间
      */
@@ -48,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * 录屏对象peerID
      */
-    private String curRecordPeerId = "";
+    private String curRecordPeerId;
     /**
      * 录屏开始时间
      */
@@ -57,11 +67,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 录屏结束时间
      */
     private long stopTime = -1;
-
     /**
      * Peer列表适配器
      */
     private PeerAdapter peerAdapter;
+    /**
+     * File列表适配器
+     */
+    private FileAdapter fileAdapter;
     /**
      * webRTC服务
      */
@@ -72,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         roomName =  findViewById(R.id.room);
+        commandName = findViewById(R.id.command);
         openCamera = findViewById(R.id.openCamera);
         openCamera.setOnClickListener(this);
         switchCamera =  findViewById(R.id.switchCamera);
@@ -90,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         saveLocal.setEnabled(false);
         saveCould = findViewById(R.id.saveCould);
         saveCould.setOnClickListener(this);
+        execute = findViewById(R.id.executeBtn);
+        execute.setOnClickListener(this);
         localSurfaceViewRenderer = findViewById(R.id.localVideo);
         remoteVideoLl = findViewById(R.id.remoteVideoLl);
         remoteViews = new HashMap<>();
@@ -174,6 +190,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
                 if (!PermissionUtil.chick(this,Permission.Group.STORAGE)){
+                    Toast.makeText(this,"请先开启存储权限",Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                if (!webRTCServer.isLine){
+                    Toast.makeText(this,"请先建立连接",Toast.LENGTH_SHORT).show();
                     break;
                 }
                 webRTCServer.startRecord(curRecordPeerId);
@@ -202,6 +223,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 stopTime = -1;
                 Toast.makeText(MainActivity.this, "文件保存在"+webRTCServer.filePath, Toast.LENGTH_SHORT).show();
                 break;
+            case R.id.executeBtn:
+                String command = commandName.getText().toString();
+                webRTCServer.sendCommand(curRecordPeerId,command);
+                Toast.makeText(MainActivity.this, "命令发送成功", Toast.LENGTH_SHORT).show();
             default:
                 break;
         }
@@ -244,6 +269,87 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void atPeerLeave() {
                 updateList();
+            }
+
+            /**
+             * 处理命令（回传的格式{exec: String,data: JSONObject}）
+             * @param from 发送命令一方的ID
+             * @param command 接收到的命令
+             */
+
+            @Override
+            public void handleCommand(String from,String command) {
+                System.out.println("从"+from+"发送了"+command+"命令");
+                switch (command){
+                    case "hello":
+                        try {
+                            Toast.makeText(MainActivity.this,"命令为"+"hello", Toast.LENGTH_SHORT).show();
+                            JSONObject data = new JSONObject();
+                            data.put("name","lkd");
+                            webRTCServer.sendExecResult(from,command,data);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case "ls":
+                        try {
+                            Toast.makeText(MainActivity.this,"命令为"+"ls", Toast.LENGTH_SHORT).show();
+                            JSONObject data = new JSONObject();
+                            List<JSONObject> jsonObjectList = FileUtil.getFileOfCurPath(webRTCServer.getDirPath());
+                            int number = jsonObjectList.size();
+                            for (int i=0;i<number;i++){
+                                data.put(i+"",jsonObjectList.get(i));
+                            }
+                            data.put("number",number);
+                            webRTCServer.sendExecResult(from,command,data);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    default:
+                        break;
+                }
+            }
+
+            /**
+             * 处理命令执行回传的结果
+             * @param exec 执行的命令
+             * @param data 回传的数据
+             */
+
+            @Override
+            public void handleExecResult(String exec,JSONObject data) {
+                switch (exec){
+                    case "hello":
+                        try {
+                            System.out.println("执行"+exec+"完成，"+"传回数据为"+data.toString()+",姓名为："+data.getString("name"));
+                            Toast.makeText(MainActivity.this,"姓名为"+data.getString("name"), Toast.LENGTH_SHORT).show();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case "ls":
+                        try {
+                            System.out.println("执行"+exec+"完成，"+"传回数据为"+data.toString());
+                            Toast.makeText(MainActivity.this,"获取所有文件", Toast.LENGTH_SHORT).show();
+                            fileListView = findViewById(R.id.list_view1);
+                            int number = data.getInt("number");
+                            List<File> fileList = new ArrayList<>();
+                            for (int i=0;i<number;i++){
+                                File file = new File();
+                                JSONObject fileJson = data.getJSONObject(i+"");
+                                file.setFileName(fileJson.getString("fileName"));
+                                file.setSize(fileJson.getString("size"));
+                                file.setCreateTime(fileJson.getString("createTime"));
+                                fileList.add(file);
+                            }
+                            fileAdapter = new FileAdapter(MainActivity.this,R.layout.file_item,fileList);
+                            fileListView.setAdapter(fileAdapter);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                }
+
             }
 
             @Override

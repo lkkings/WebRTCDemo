@@ -37,6 +37,7 @@ dependencies {
         // excluding org.json which is provided by Android
         exclude group: 'org.json', module: 'json'
     }
+    implementation project(path: ':webrtcmodel')
     testImplementation 'junit:junit:4.+'
     implementation project(path: ':permissionmodel')
 }
